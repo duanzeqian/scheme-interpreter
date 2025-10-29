@@ -637,8 +637,10 @@ Value SetCdr::evalRator(const Value &rand1, const Value &rand2) { // set-cdr!
 
 Value IsEq::evalRator(const Value &rand1, const Value &rand2) { // eq?
     // 检查类型是否为 Integer
-    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
-        return BooleanV((dynamic_cast<Integer*>(rand1.get())->n) == (dynamic_cast<Integer*>(rand2.get())->n));
+    if ((rand1->v_type == V_INT || rand1->v_type == V_RATIONAL) && (rand2->v_type == V_INT || rand2->v_type == V_RATIONAL)) {
+        int res = compareNumericValues(rand1,rand2);
+        if(res == 0) return BooleanV(true);
+        else return BooleanV(false);
     }
     // 检查类型是否为 Boolean
     else if (rand1->v_type == V_BOOL && rand2->v_type == V_BOOL) {
@@ -662,7 +664,7 @@ Value IsBoolean::evalRator(const Value &rand) { // boolean?
 }
 
 Value IsFixnum::evalRator(const Value &rand) { // number?
-    return BooleanV(rand->v_type == V_INT);
+    return BooleanV(rand->v_type == V_INT || rand->v_type == V_RATIONAL);
 }
 
 Value IsNull::evalRator(const Value &rand) { // null?
