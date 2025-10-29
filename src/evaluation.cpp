@@ -190,7 +190,12 @@ Value Modulo::evalRator(const Value &rand1, const Value &rand2) { // modulo
 
 Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple args
     //TODO: To complete the addition logic
-    if(args.size() == 0) return IntegerV(0);//special judge(maybe useless?)
+    if(args.size() == 0) return IntegerV(0);//special judge
+    else if(args.size() == 1)
+    {
+        if(args[0]->v_type == V_INT || args[0]->v_type == V_RATIONAL) return args[0];
+        else throw(RuntimeError("Wrong typename"));
+    }
     Rational sum(0,1),addend(0,1);
     for(size_t i=0; i<args.size(); ++i)
     {
@@ -213,7 +218,17 @@ Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple ar
 
 Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple args
     //TODO: To complete the substraction logic
-    if(args.size() == 0) return IntegerV(0);//special judge(maybe useless?)
+    if(args.size() == 0) throw RuntimeError("Wrong number of arguments for -");
+    else if(args.size() == 1)
+    {
+        if(args[0]->v_type == V_INT) return IntegerV(-dynamic_cast<Integer*>(args[0].get())->n);
+        else if(args[0]->v_type == V_RATIONAL)
+        {
+            Rational r = *dynamic_cast<Rational*>(args[0].get());
+            return RationalV(-r.numerator,r.denominator);
+        }
+        else throw RuntimeError("Wrong typename");
+    }
     Rational difference(0,1),subtrahend(0,1);
     for(size_t i=0; i<args.size(); ++i)
     {
@@ -236,7 +251,12 @@ Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple a
 
 Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple args
     //TODO: To complete the multiplication logic
-    if(args.size() == 0) return IntegerV(1);//special judge(maybe useless?)
+    if(args.size() == 0) return IntegerV(1);//special judge
+    else if(args.size() == 1)
+    {
+        if(args[0]->v_type == V_INT || args[0]->v_type == V_RATIONAL) return args[0];
+        else throw(RuntimeError("Wrong typename"));
+    }
     Rational product(0,1),multiplicand(0,1);
     for(size_t i=0; i<args.size(); ++i)
     {
@@ -259,7 +279,22 @@ Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple ar
 
 Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple args
     //TODO: To complete the divisor logic
-    if(args.size() == 0) return IntegerV(1);//special judge(maybe useless?)
+    if(args.size() == 0) throw RuntimeError("Wrong number of arguments for /");
+    else if(args.size() == 1)
+    {
+        if(args[0]->v_type == V_INT)
+        {
+            if(dynamic_cast<Integer*>(args[0].get())->n == 0) throw RuntimeError("Division by zero");
+            return RationalV(1,dynamic_cast<Integer*>(args[0].get())->n);
+        }
+        else if(args[0]->v_type == V_RATIONAL)
+        {
+            Rational r = *dynamic_cast<Rational*>(args[0].get());
+            if(r.numerator == 0) throw RuntimeError("Division by zero");
+            return RationalV(r.denominator,r.numerator);
+        }
+        else throw RuntimeError("Wrong typename");
+    }
     Rational quotient(0,1),divisor(0,1);
     for(size_t i=0; i<args.size(); ++i)
     {
