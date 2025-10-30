@@ -12,7 +12,27 @@ void Number::show(std::ostream &os) {
   os << "the-number-" << n;
 }
 
-RationalSyntax::RationalSyntax(int num, int den) : numerator(num), denominator(den) {}
+static int gcd(int a, int b) {
+    if (a < 0) a = -a;
+    if (b < 0) b = -b;
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+RationalSyntax::RationalSyntax(int num, int den) : numerator(num), denominator(den) {
+    int g = gcd(abs(numerator), abs(denominator));
+    numerator /= g;
+    denominator /= g;
+    
+    if (denominator < 0) {
+        numerator = -numerator;
+        denominator = -denominator;
+    }
+}
 void RationalSyntax::show(std::ostream &os) {
   os << numerator << "/" << denominator;
 }
@@ -114,7 +134,7 @@ bool tryParseRational(const std::string &s, int &numerator, int &denominator) {
   }
   
   // Parse denominator (must be positive)
-  if (!tryParseNumber(den_str, denominator) || denominator <= 0) {
+  if (!tryParseNumber(den_str, denominator) || denominator == 0) {
     return false;
   }
   
