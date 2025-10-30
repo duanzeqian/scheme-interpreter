@@ -24,6 +24,20 @@ using std::pair;
 extern std::map<std::string, ExprType> primitives;
 extern std::map<std::string, ExprType> reserved_words;
 
+
+Expr syntax_To_Expr(const Syntax &stx,Assoc &env);
+bool isKeywordRedefined(const std::string& keyword, Assoc& env) {
+    Value keyword_value = find(keyword, env);
+    return (keyword_value.get() != nullptr);
+}
+Expr handleRedefinedKeyword(const std::string& keyword, const std::vector<Syntax>& stxs, Assoc& env) {
+    vector<Expr> args;
+    for(size_t i = 1; i < stxs.size(); ++i) {
+        args.push_back(syntax_To_Expr(stxs[i], env));
+    }
+    return Expr(new Apply(new Var(keyword), args));
+}
+
 /**
  * @brief Default parse method (should be overridden by subclasses)
  */
@@ -56,7 +70,7 @@ Expr FalseSyntax::parse(Assoc &env) {
     return Expr(new False());
 }
 
-Expr syntax_To_Expr(const Syntax &stx)
+Expr syntax_To_Expr(const Syntax &stx,Assoc &env)
 {
     if(auto num = dynamic_cast<Number*>(stx.get()))return Expr(new Fixnum(num->n));
     else if(auto rat = dynamic_cast<RationalSyntax*>(stx.get())) return Expr(new RationalNum(rat->numerator, rat->denominator));
@@ -64,11 +78,7 @@ Expr syntax_To_Expr(const Syntax &stx)
     else if(auto str = dynamic_cast<StringSyntax*>(stx.get())) return Expr(new StringExpr(str->s));
     else if(dynamic_cast<TrueSyntax*>(stx.get())) return Expr(new True());
     else if(dynamic_cast<FalseSyntax*>(stx.get())) return Expr(new False());
-    else if(auto lst = dynamic_cast<List*>(stx.get()))
-    {
-        Assoc empty_env = empty();
-        return lst->parse(empty_env);
-    }
+    else if(auto lst = dynamic_cast<List*>(stx.get())) return lst->parse(env);
     else throw RuntimeError("Unknown syntax type");
 }
 
@@ -83,20 +93,21 @@ Expr List::parse(Assoc &env) {
     if (id == nullptr) {
         //TODO: TO COMPLETE THE LOGIC(Apply)
         vector<Expr> args;
-        for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i]));
-        return Expr(new Apply(syntax_To_Expr(stxs[0]),args));//package it as a function
+        for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i],env));
+        return Expr(new Apply(syntax_To_Expr(stxs[0],env),args));//package it as a function
     }else{
     string op = id->s;
-    if (find(op, env).get() != nullptr) {
+    Value match_value = find(op, env);
+    if (match_value.get() != nullptr) {
         //TODO: TO COMPLETE THE PARAMETER PARSER LOGIC(op is a variable in the environment)
         vector<Expr> args;
-        for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i]));
+        for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i],env));
         return Expr(new Apply(new Var(op),args));
     }
     if (primitives.count(op) != 0) {
         vector<Expr> parameters;
         //TODO: TO COMPLETE THE PARAMETER PARSER LOGIC
-        for(size_t i=1; i<stxs.size(); ++i) parameters.push_back(syntax_To_Expr(stxs[i]));
+        for(size_t i=1; i<stxs.size(); ++i) parameters.push_back(syntax_To_Expr(stxs[i],env));
 
         ExprType op_type = primitives[op];
         if (op_type == E_PLUS) {
@@ -307,12 +318,13 @@ Expr List::parse(Assoc &env) {
     }
 
     if (reserved_words.count(op) != 0) {
+        if(isKeywordRedefined(op,env)) return handleRedefinedKeyword(op,stxs,env);
     	switch (reserved_words[op]) {
 			//TODO: TO COMPLETE THE reserve_words PARSER LOGIC
             case E_BEGIN:
             {
                 vector<Expr> exps;
-                for(size_t i=1; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i]));
+                for(size_t i=1; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i],env));
                 return Expr(new Begin(exps));
             }
             case E_QUOTE:
@@ -322,7 +334,7 @@ Expr List::parse(Assoc &env) {
             }
             case E_IF:
             {
-                if(stxs.size() == 4) return Expr(new If(syntax_To_Expr(stxs[1]),syntax_To_Expr(stxs[2]),syntax_To_Expr(stxs[3])));
+                if(stxs.size() == 4) return Expr(new If(syntax_To_Expr(stxs[1],env),syntax_To_Expr(stxs[2],env),syntax_To_Expr(stxs[3],env)));
                 else throw RuntimeError("Wrong number of arguments for If");
             }
             case E_COND:
@@ -333,7 +345,7 @@ Expr List::parse(Assoc &env) {
                     if(auto lst = dynamic_cast<List*>(stxs[i].get()))
                     {
                         vector<Expr> clause;
-                        for(auto &stx:lst->stxs) clause.push_back(syntax_To_Expr(stx));
+                        for(auto &stx:lst->stxs) clause.push_back(syntax_To_Expr(stx,env));
                         clauses.push_back(clause);
                     }
                     else throw(RuntimeError("Wrong typename in Cond"));
@@ -342,20 +354,20 @@ Expr List::parse(Assoc &env) {
             }
             case E_LAMBDA:
             {
-                if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for lambda");//lambda + vec + expr, so at least 3 elements
+                if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for lambda");
                 vector<string> parameters;
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
                 {
                     for(auto &stx:lst->stxs)
                     {
-                        if(auto sym = dynamic_cast<SymbolSyntax*>(stx.get())) parameters.push_back(sym->s);
-                        else throw RuntimeError("Wrong typename in Lambda");
+                        if(auto sym = dynamic_cast<SymbolSyntax*>(stx.get())) 
+                            parameters.push_back(sym->s);
                     }
                 }
-                else throw RuntimeError("Wrong parameter list in Lambda");
-
+                Assoc lambda_env = env; 
+                for(const auto& param : parameters) lambda_env = extend(param, VoidV(), lambda_env);//bind outside environment
                 vector<Expr> exps;
-                for(size_t i=2; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i]));
+                for(size_t i=2; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i], lambda_env));
                 return Expr(new Lambda(parameters, Expr(new Begin(exps))));
             }
             case E_DEFINE:
@@ -369,7 +381,7 @@ Expr List::parse(Assoc &env) {
                         if(SymbolSyntax* funcNameSym = dynamic_cast<SymbolSyntax*>(lst->stxs[0].get()))//get the name of the function
                         {
                             string funcName = funcNameSym->s;
-                            if(primitives.count(funcName) || reserved_words.count(funcName)) throw RuntimeError("Define: cannot redefine primitive or reserved word");
+                            //if(primitives.count(funcName) || reserved_words.count(funcName)) throw RuntimeError("Define: cannot redefine primitive or reserved word");
                             vector<string> parameters;
                             for(size_t i=1; i<lst->stxs.size(); ++i)
                             {
@@ -378,7 +390,7 @@ Expr List::parse(Assoc &env) {
                                 else throw RuntimeError("Invalid parameter in function definition");
                             }
                             vector<Expr> exps;
-                            for(size_t i=2; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i]));
+                            for(size_t i=2; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i],env));
                             Expr body=exps[0];//size=1
                             if(exps.size() > 1) body = Expr(new Begin(exps));
                             //create a new lambda and package it with Define
@@ -391,12 +403,12 @@ Expr List::parse(Assoc &env) {
                 SymbolSyntax* varSym = dynamic_cast<SymbolSyntax*>(stxs[1].get());
                 if(varSym == nullptr) throw RuntimeError("Invalid variable name in Define");
                 string varName = varSym->s;
-                if(primitives.count(varName) || reserved_words.count(varName)) throw RuntimeError("Define: cannot redefine primitive or reserved word");
-                Expr expr=syntax_To_Expr(stxs[2]);//size=3
+                //if(primitives.count(varName) || reserved_words.count(varName)) throw RuntimeError("Define: cannot redefine primitive or reserved word");
+                Expr expr=syntax_To_Expr(stxs[2],env);//size=3
                 if(stxs.size() > 3)
                 {
                     vector<Expr> exprs;
-                    for(size_t i=2; i<stxs.size(); ++i) exprs.push_back(syntax_To_Expr(stxs[i]));
+                    for(size_t i=2; i<stxs.size(); ++i) exprs.push_back(syntax_To_Expr(stxs[i],env));
                     expr = Expr(new Begin(exprs));
                 }
                 return Expr(new Define(varName, expr));
@@ -404,28 +416,39 @@ Expr List::parse(Assoc &env) {
             case E_LET:
             {
                 if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for Let");
-                vector<pair<string,Expr>> bindings;
+                vector<string> parameters;
+                vector<Syntax> arguments;
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
                 {
-                    for(auto &stx:lst->stxs)
+                    for(auto &binding_stx : lst->stxs)
                     {
-                        if(auto sym_lst = dynamic_cast<List*>(stx.get()))
+                        if(auto binding_lst = dynamic_cast<List*>(binding_stx.get()))
                         {
-                            if(sym_lst->stxs.size() != 2) throw RuntimeError("Wrong number of arguments in single Let");
-                            SymbolSyntax* sym = dynamic_cast<SymbolSyntax*>(sym_lst->stxs[0].get());
-                            if(sym == nullptr) throw RuntimeError("Invalid variable name in single Let");
-                            bindings.push_back(std::make_pair(sym->s,syntax_To_Expr(sym_lst->stxs[1])));
+                            if(binding_lst->stxs.size() != 2) throw RuntimeError("Wrong number of arguments in single Let binding");
+                            SymbolSyntax* var_sym = dynamic_cast<SymbolSyntax*>(binding_lst->stxs[0].get());
+                            if(var_sym == nullptr) throw RuntimeError("Invalid variable name in Let binding");
+                            parameters.push_back(var_sym->s);
+                            arguments.push_back(binding_lst->stxs[1]);
                         }
-                        else throw RuntimeError("Wrong typename in Lambda");
+                        else throw RuntimeError("Invalid binding syntax in Let");
                     }
                 }
                 else throw RuntimeError("Wrong parameter list in Let");
-
-                vector<Expr> body;
-                for(size_t i=2; i<stxs.size(); ++i) body.push_back(syntax_To_Expr(stxs[i]));
-                Expr expr = body[0];//size = 1
-                if(body.size() > 1) expr = Expr(new Begin(body));
-                return Expr(new Let(bindings,expr));
+                vector<Syntax> body_stxs;
+                for(size_t i=2; i<stxs.size(); ++i) body_stxs.push_back(stxs[i]);
+                if(body_stxs.empty()) body_stxs.push_back(Syntax(new SymbolSyntax("void")));
+                List* lambda_list = new List();
+                lambda_list->stxs.push_back(Syntax(new SymbolSyntax("lambda")));
+                List* param_list = new List();
+                for(const auto& param : parameters) param_list->stxs.push_back(Syntax(new SymbolSyntax(param)));
+                lambda_list->stxs.push_back(Syntax(param_list));
+                for(const auto& body_stx : body_stxs) lambda_list->stxs.push_back(body_stx);
+                
+                //((lambda (params...) body) args...)
+                List* apply_list = new List();
+                apply_list->stxs.push_back(Syntax(lambda_list));
+                for(const auto& arg : arguments) apply_list->stxs.push_back(arg);
+                return syntax_To_Expr(Syntax(apply_list), env);
             }
             case E_LETREC:
             {
@@ -440,16 +463,15 @@ Expr List::parse(Assoc &env) {
                             if(sym_lst->stxs.size() != 2) throw RuntimeError("Wrong number of arguments in single Letrec");
                             SymbolSyntax* sym = dynamic_cast<SymbolSyntax*>(sym_lst->stxs[0].get());
                             if(sym == nullptr) throw RuntimeError("Invalid variable name in single Letrec");
-                            bindings.push_back(std::make_pair(sym->s,syntax_To_Expr(sym_lst->stxs[1])));
+                            bindings.push_back(std::make_pair(sym->s,syntax_To_Expr(sym_lst->stxs[1],env)));
                         }
                         else throw RuntimeError("Wrong typename in Lambda");
                     }
                 }
                 else throw RuntimeError("Wrong parameter list in Letrec");
-
                 vector<Expr> body;
-                for(size_t i=2; i<stxs.size(); ++i) body.push_back(syntax_To_Expr(stxs[i]));
-                Expr expr = body[0];//size = 1
+                for(size_t i=2; i<stxs.size(); ++i) body.push_back(syntax_To_Expr(stxs[i],env));
+                Expr expr = body[0];
                 if(body.size() > 1) expr = Expr(new Begin(body));
                 return Expr(new Letrec(bindings,expr));
             }
@@ -459,7 +481,7 @@ Expr List::parse(Assoc &env) {
                 SymbolSyntax* varSym = dynamic_cast<SymbolSyntax*>(stxs[1].get());
                 if(varSym == nullptr) throw RuntimeError("Invalid variable name in set!");
                 string varName = varSym->s;
-                Expr expr = syntax_To_Expr(stxs[2]);
+                Expr expr = syntax_To_Expr(stxs[2],env);
                 return Expr(new Set(varName,expr));
             }
         	default:
@@ -471,7 +493,7 @@ Expr List::parse(Assoc &env) {
     //TODO: TO COMPLETE THE PARSER LOGIC
     //now op is a function name(variable name)
     vector<Expr> args;
-    for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i]));
+    for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i],env));
     return Expr(new Apply(Expr(new Var(op)),args));
 }
 }
