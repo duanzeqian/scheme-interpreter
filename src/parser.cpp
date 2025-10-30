@@ -100,7 +100,6 @@ Expr List::parse(Assoc &env) {
 
         ExprType op_type = primitives[op];
         if (op_type == E_PLUS) {
-            if (parameters.size() <= 1) throw RuntimeError("Wrong number of arguments for +");
             if (parameters.size() == 2) {
                 return Expr(new Plus(parameters[0], parameters[1])); 
             } else {
@@ -108,7 +107,7 @@ Expr List::parse(Assoc &env) {
             }
         } else if (op_type == E_MINUS) {
             //TODO: TO COMPLETE THE LOGIC
-            if (parameters.size() <= 1) throw RuntimeError("Wrong number of arguments for -");
+            if (parameters.size() == 0) throw RuntimeError("Wrong number of arguments for -");
             if (parameters.size() == 2) {
                 return Expr(new Minus(parameters[0], parameters[1])); 
             } else {
@@ -116,7 +115,6 @@ Expr List::parse(Assoc &env) {
             }
         } else if (op_type == E_MUL) {
             //TODO: TO COMPLETE THE LOGIC
-            if (parameters.size() <= 1) throw RuntimeError("Wrong number of arguments for *");
             if (parameters.size() == 2) {
                 return Expr(new Mult(parameters[0], parameters[1])); 
             } else {
@@ -124,7 +122,7 @@ Expr List::parse(Assoc &env) {
             }
         }  else if (op_type == E_DIV) {
             //TODO: TO COMPLETE THE LOGIC
-            if (parameters.size() <= 1) throw RuntimeError("Wrong number of arguments for /");
+            if (parameters.size() == 0) throw RuntimeError("Wrong number of arguments for /");
             if (parameters.size() == 2) {
                 return Expr(new Div(parameters[0], parameters[1])); 
             } else {
@@ -139,7 +137,7 @@ Expr List::parse(Assoc &env) {
             return Expr(new ListFunc(parameters));
         } else if (op_type == E_LT) {
             //TODO: TO COMPLETE THE LOGIC
-            if (parameters.size() < 1) throw RuntimeError("Wrong number of arguments for <");
+            if (parameters.size() <= 1) throw RuntimeError("Wrong number of arguments for <");
             if (parameters.size() == 2) {
                 return Expr(new Less(parameters[0], parameters[1])); 
             } else {
