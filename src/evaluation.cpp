@@ -71,7 +71,6 @@ Value Var::eval(Assoc &e) { // evaluation of variable
     //Variable names can overlap with primitives and reserve_words
     //Variable names can contain any non-whitespace characters except #, ', ", `, but the first character cannot be a digit
     //When a variable is not defined in the current scope, your interpreter should output RuntimeError
-    
     Value matched_value = find(x, e);//user variable in current scope environment
     //Variable names can overlap with primitives and reserve_words, so we should check it first
     if (matched_value.get() == nullptr) {
@@ -87,10 +86,10 @@ Value Var::eval(Assoc &e) { // evaluation of variable
                     {E_SYMBOLQ,  {new IsSymbol(new Var("parm")), {"parm"}}},
                     {E_STRINGQ,  {new IsString(new Var("parm")), {"parm"}}},
                     {E_DISPLAY,  {new Display(new Var("parm")), {"parm"}}},
-                    {E_PLUS,     {new PlusVar({}),  {"numbers"}}},
-                    {E_MINUS,    {new MinusVar({}), {"numbers"}}},
-                    {E_MUL,      {new MultVar({}),  {"numbers"}}},
-                    {E_DIV,      {new DivVar({}),   {"numbers"}}},
+                    {E_PLUS,     {new PlusVar({}),  {}}},
+                    {E_MINUS,    {new MinusVar({}), {}}},
+                    {E_MUL,      {new MultVar({}),  {}}},
+                    {E_DIV,      {new DivVar({}),   {}}},
                     {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
                     {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
                     {E_EQQ,      {new EqualVar({}), {}}},
@@ -101,7 +100,7 @@ Value Var::eval(Assoc &e) { // evaluation of variable
             //COMPLETE THE CODE WITH THE HINT IN IF SENTENCE WITH CORRECT RETURN VALUE
             if (it != primitive_map.end()) {
                 //TODO
-                return ProcedureV(it->second.second,it->second.first,empty());
+                return ProcedureV(it->second.second,it->second.first,e);
                 /*
                 in value.cpp:
                 Value ProcedureV(const std::vector<std::string> &xs, const Expr &e, const Assoc &env) {
@@ -863,7 +862,7 @@ Value Apply::eval(Assoc &e) {
 
 Value Define::eval(Assoc &env) {
     //TODO: To complete the define logic
-    if(primitives.count(var) || reserved_words.count(var)) throw(RuntimeError("Invalid variable name in Define::eval"));
+    //if(primitives.count(var) || reserved_words.count(var)) throw(RuntimeError("Invalid variable name in Define::eval"));
     Value matched_value = find(var,env);
     if(matched_value.get() == nullptr) env = extend(var,VoidV(),env);
     //a new element in env, namely recursion,so we create a Placeholder
@@ -873,18 +872,11 @@ Value Define::eval(Assoc &env) {
 
 Value Let::eval(Assoc &env) {
     //TODO: To complete the let logic
-    //(let ((p1 v1) (p2 v2) ...) body)
-    //((lambda (p1 p2 ...) body) v1 v2 ...)
-    std::vector<std::string> primitives;
-    std::vector<Expr> values;
-    for(size_t i=0; i<bind.size(); ++i)
-    {
-        primitives.push_back(bind[i].first);
-        values.push_back(bind[i].second);
-    }
-    Lambda* lambda = new Lambda(primitives,body);
-    Apply* apply = new Apply(Expr(lambda),values);
-    return Expr(apply)->eval(env);
+    Assoc new_env = env;
+    std::vector<Value> values;
+    for(auto &binding:bind) values.push_back(binding.second->eval(env));
+    for(size_t i = 0; i < bind.size(); ++i) new_env = extend(bind[i].first, values[i], new_env);
+    return body->eval(new_env);
 }
 
 Value Letrec::eval(Assoc &env)
