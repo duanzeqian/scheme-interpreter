@@ -191,9 +191,10 @@ Value Div::evalRator(const Value &rand1, const Value &rand2) { // /
 }
 
 Value Modulo::evalRator(const Value &rand1, const Value &rand2) { // modulo
-    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
-        int dividend = dynamic_cast<Integer*>(rand1.get())->n;
-        int divisor = dynamic_cast<Integer*>(rand2.get())->n;
+    if (((rand1->v_type == V_INT) || (rand1->v_type == V_RATIONAL && dynamic_cast<Rational*>(rand1.get())->denominator == 1)) 
+     && ((rand2->v_type == V_INT) || (rand2->v_type == V_RATIONAL && dynamic_cast<Rational*>(rand2.get())->denominator == 1))) {
+        int dividend = (rand1->v_type == V_INT) ? dynamic_cast<Integer*>(rand1.get())->n : dynamic_cast<Rational*>(rand1.get())->numerator;
+        int divisor = (rand2->v_type == V_INT) ?dynamic_cast<Integer*>(rand2.get())->n : dynamic_cast<Rational*>(rand2.get())->numerator;
         if (divisor == 0) {
             throw(RuntimeError("Division by zero"));
         }
@@ -331,9 +332,10 @@ Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple arg
 }
 
 Value Expt::evalRator(const Value &rand1, const Value &rand2) { // expt
-    if (rand1->v_type == V_INT && rand2->v_type == V_INT) {
-        int base = dynamic_cast<Integer*>(rand1.get())->n;
-        int exponent = dynamic_cast<Integer*>(rand2.get())->n;
+    if (((rand1->v_type == V_INT) || (rand1->v_type == V_RATIONAL && dynamic_cast<Rational*>(rand1.get())->denominator == 1)) 
+     && ((rand2->v_type == V_INT) || (rand2->v_type == V_RATIONAL && dynamic_cast<Rational*>(rand2.get())->denominator == 1))) {
+        int base = (rand1->v_type == V_INT) ? dynamic_cast<Integer*>(rand1.get())->n : dynamic_cast<Rational*>(rand1.get())->numerator;
+        int exponent = (rand2->v_type == V_INT) ?dynamic_cast<Integer*>(rand2.get())->n : dynamic_cast<Rational*>(rand2.get())->numerator;
         
         if (exponent < 0) {
             throw(RuntimeError("Negative exponent not supported for integers"));
