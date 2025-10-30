@@ -50,6 +50,7 @@ bool isExplicitVoidCall(Expr expr) {
 void REPL(){
     // read - evaluation - print loop
     Assoc global_env = empty();
+    std::vector<std::pair<std::string,Expr>> mut_rec;
     while (1){
         #ifndef ONLINE_JUDGE
             std::cout << "scm> ";
@@ -58,6 +59,27 @@ void REPL(){
         try{
             Expr expr = stx -> parse(global_env); // parse
             // stx -> show(std :: cout); // syntax print
+
+            if(auto define_expr = dynamic_cast<Define*>(expr.get()))
+            {
+                mut_rec.push_back({define_expr->var,define_expr->e});
+                continue; // in case there are define in recursion
+            }
+            if(!mut_rec.empty())
+            {
+                for (auto &def:mut_rec)
+                {
+                    Value matched_value = find(def.first,global_env);
+                    if(matched_value.get() == nullptr) global_env = extend(def.first,VoidV(),global_env);
+                }
+                for (auto &def:mut_rec)
+                {
+                    Value val = def.second->eval(global_env);
+                    modify(def.first,val,global_env);
+                }
+                mut_rec.clear();
+            }
+
             Value val = expr -> eval(global_env);
             if (val -> v_type == V_TERMINATE)
                 break;
