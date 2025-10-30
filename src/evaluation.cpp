@@ -141,7 +141,7 @@ Value Plus::evalRator(const Value &rand1, const Value &rand2) { // +
         Rational sum = augend + addend;
         return RationalV(sum.numerator,sum.denominator);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in +"));
 }
 
 Value Minus::evalRator(const Value &rand1, const Value &rand2) { // -
@@ -156,7 +156,7 @@ Value Minus::evalRator(const Value &rand1, const Value &rand2) { // -
         Rational difference = minuend - subtrahend;
         return RationalV(difference.numerator,difference.denominator);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in -"));
 }
 
 Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
@@ -171,7 +171,7 @@ Value Mult::evalRator(const Value &rand1, const Value &rand2) { // *
         Rational product = multiplier * multiplicand;
         return RationalV(product.numerator,product.denominator);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in *"));
 }
 
 Value Div::evalRator(const Value &rand1, const Value &rand2) { // /
@@ -187,7 +187,7 @@ Value Div::evalRator(const Value &rand1, const Value &rand2) { // /
         Rational quotient = dividend / divisor;
         return RationalV(quotient.numerator,quotient.denominator);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in /"));
 }
 
 Value Modulo::evalRator(const Value &rand1, const Value &rand2) { // modulo
@@ -208,7 +208,7 @@ Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple ar
     else if(args.size() == 1)
     {
         if(args[0]->v_type == V_INT || args[0]->v_type == V_RATIONAL) return args[0];
-        else throw(RuntimeError("Wrong typename"));
+        else throw(RuntimeError("Wrong typename in +(multiple)"));
     }
     Rational sum(0,1),addend(0,1);
     for(size_t i=0; i<args.size(); ++i)
@@ -217,13 +217,13 @@ Value PlusVar::evalRator(const std::vector<Value> &args) { // + with multiple ar
         {
             if(args[i]->v_type == V_RATIONAL) sum = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) sum = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in +(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) addend = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) addend = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in +(multiple)"));
             sum += addend;
         }
     }
@@ -241,7 +241,7 @@ Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple a
             Rational r = *dynamic_cast<Rational*>(args[0].get());
             return RationalV(-r.numerator,r.denominator);
         }
-        else throw RuntimeError("Wrong typename");
+        else throw RuntimeError("Wrong typename in -(multiple)");
     }
     Rational difference(0,1),subtrahend(0,1);
     for(size_t i=0; i<args.size(); ++i)
@@ -250,13 +250,13 @@ Value MinusVar::evalRator(const std::vector<Value> &args) { // - with multiple a
         {
             if(args[i]->v_type == V_RATIONAL) difference = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) difference = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in -(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) subtrahend = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) subtrahend = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in -(multiple)"));
             difference -= subtrahend;
         }
     }
@@ -269,7 +269,7 @@ Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple ar
     else if(args.size() == 1)
     {
         if(args[0]->v_type == V_INT || args[0]->v_type == V_RATIONAL) return args[0];
-        else throw(RuntimeError("Wrong typename"));
+        else throw(RuntimeError("Wrong typename in *(multiple)"));
     }
     Rational product(0,1),multiplicand(0,1);
     for(size_t i=0; i<args.size(); ++i)
@@ -278,13 +278,13 @@ Value MultVar::evalRator(const std::vector<Value> &args) { // * with multiple ar
         {
             if(args[i]->v_type == V_RATIONAL) product = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) product = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in *(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) multiplicand = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) multiplicand = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in *(multiple)"));
             product *= multiplicand;
         }
     }
@@ -307,7 +307,7 @@ Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple arg
             if(r.numerator == 0) throw RuntimeError("Division by zero");
             return RationalV(r.denominator,r.numerator);
         }
-        else throw RuntimeError("Wrong typename");
+        else throw RuntimeError("Wrong typename in /(multiple)");
     }
     Rational quotient(0,1),divisor(0,1);
     for(size_t i=0; i<args.size(); ++i)
@@ -316,13 +316,13 @@ Value DivVar::evalRator(const std::vector<Value> &args) { // / with multiple arg
         {
             if(args[i]->v_type == V_RATIONAL) quotient = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) quotient = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in /(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) divisor = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) divisor = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in /(multiple)"));
             if(divisor.numerator == 0) throw(RuntimeError("Division by zero"));
             quotient /= divisor;
         }
@@ -364,7 +364,7 @@ Value Expt::evalRator(const Value &rand1, const Value &rand2) { // expt
         
         return IntegerV((int)result);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in expt"));
 }
 
 //A FUNCTION TO SIMPLIFY THE COMPARISON WITH INTEGER AND RATIONAL NUMBER
@@ -409,7 +409,7 @@ Value Less::evalRator(const Value &rand1, const Value &rand2) { // <
         else rhs = Rational(dynamic_cast<Integer*>(rand2.get())->n,1);
         return BooleanV(lhs<rhs);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in <"));
 }
 
 Value LessEq::evalRator(const Value &rand1, const Value &rand2) { // <=
@@ -423,7 +423,7 @@ Value LessEq::evalRator(const Value &rand1, const Value &rand2) { // <=
         else rhs = Rational(dynamic_cast<Integer*>(rand2.get())->n,1);
         return BooleanV(lhs<=rhs);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in <="));
 }
 
 Value Equal::evalRator(const Value &rand1, const Value &rand2) { // =
@@ -437,7 +437,7 @@ Value Equal::evalRator(const Value &rand1, const Value &rand2) { // =
         else rhs = Rational(dynamic_cast<Integer*>(rand2.get())->n,1);
         return BooleanV(lhs==rhs);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in ="));
 }
 
 Value GreaterEq::evalRator(const Value &rand1, const Value &rand2) { // >=
@@ -451,7 +451,7 @@ Value GreaterEq::evalRator(const Value &rand1, const Value &rand2) { // >=
         else rhs = Rational(dynamic_cast<Integer*>(rand2.get())->n,1);
         return BooleanV(lhs>=rhs);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in >="));
 }
 
 Value Greater::evalRator(const Value &rand1, const Value &rand2) { // >
@@ -465,7 +465,7 @@ Value Greater::evalRator(const Value &rand1, const Value &rand2) { // >
         else rhs = Rational(dynamic_cast<Integer*>(rand2.get())->n,1);
         return BooleanV(lhs>rhs);
     }
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in >"));
 }
 
 Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple args
@@ -479,13 +479,13 @@ Value LessVar::evalRator(const std::vector<Value> &args) { // < with multiple ar
         {
             if(args[i]->v_type == V_RATIONAL) lhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) lhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in <(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) rhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) rhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in <(multiple)"));
             if(lhs >= rhs) result = false;
             if(!result) continue;//don't break in case some of the data after the false occurs are invalid
             lhs = rhs;
@@ -505,13 +505,13 @@ Value LessEqVar::evalRator(const std::vector<Value> &args) { // <= with multiple
         {
             if(args[i]->v_type == V_RATIONAL) lhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) lhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in <=(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) rhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) rhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in <=(multiple)"));
             if(lhs > rhs) result = false;
             if(!result) continue;//don't break in case some of the data after the false occurs are invalid
             lhs = rhs;
@@ -531,13 +531,13 @@ Value EqualVar::evalRator(const std::vector<Value> &args) { // = with multiple a
         {
             if(args[i]->v_type == V_RATIONAL) lhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) lhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in =(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) rhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) rhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in =(multiple)"));
             if(!(lhs == rhs)) result = false;
             if(!result) continue;//don't break in case some of the data after the false occurs are invalid
             lhs = rhs;
@@ -557,13 +557,13 @@ Value GreaterEqVar::evalRator(const std::vector<Value> &args) { // >= with multi
         {
             if(args[i]->v_type == V_RATIONAL) lhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) lhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in >=(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) rhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) rhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in >=(multiple)"));
             if(lhs < rhs) result = false;
             if(!result) continue;//don't break in case some of the data after the false occurs are invalid
             lhs = rhs;
@@ -583,13 +583,13 @@ Value GreaterVar::evalRator(const std::vector<Value> &args) { // > with multiple
         {
             if(args[i]->v_type == V_RATIONAL) lhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) lhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in >(multiple)"));
         }
         else
         {
             if(args[i]->v_type == V_RATIONAL) rhs = *dynamic_cast<Rational*>(args[i].get());
             else if(args[i]->v_type == V_INT) rhs = Rational(dynamic_cast<Integer*>(args[i].get())->n,1);
-            else throw(RuntimeError("Wrong typename"));
+            else throw(RuntimeError("Wrong typename in >(multiple)"));
             if(lhs <= rhs) result = false;
             if(!result) continue;//don't break in case some of the data after the false occurs are invalid
             lhs = rhs;
@@ -624,13 +624,13 @@ Value IsList::evalRator(const Value &rand) { // list?
 Value Car::evalRator(const Value &rand) { // car
     //TODO: To complete the car logic
     if(rand->v_type == V_PAIR) return dynamic_cast<Pair*>(rand.get())->car;
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in Car"));
 }
 
 Value Cdr::evalRator(const Value &rand) { // cdr
     //TODO: To complete the cdr logic
     if(rand->v_type == V_PAIR) return dynamic_cast<Pair*>(rand.get())->cdr;//it can print the whole cdr parts until the last element
-    throw(RuntimeError("Wrong typename"));
+    throw(RuntimeError("Wrong typename in Cdr"));
 }
 
 Value SetCar::evalRator(const Value &rand1, const Value &rand2) { // set-car!
