@@ -373,6 +373,7 @@ Expr List::parse(Assoc &env) {
                     for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
                     return Expr(new Apply(new Var("cond"), args));
                 }
+                if(stxs.size() <= 1) throw(RuntimeError("No elements in Cond"));
                 vector<vector<Expr> > clauses;
                 for(size_t i=1; i<stxs.size(); ++i)
                 {
