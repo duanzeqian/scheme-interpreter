@@ -10,13 +10,15 @@
 extern std::map<std::string, ExprType> primitives;
 extern std::map<std::string, ExprType> reserved_words;
 
+
+
 bool isExplicitVoidCall(Expr expr) {
     MakeVoid* make_void_expr = dynamic_cast<MakeVoid*>(expr.get());
     if (make_void_expr != nullptr) {
         return true;
     }
     
-    Apply* apply_expr = dynamic_cast<Apply*>(expr.get());
+    /*Apply* apply_expr = dynamic_cast<Apply*>(expr.get());
     if (apply_expr != nullptr) {
         Var* var_expr = dynamic_cast<Var*>(apply_expr->rator.get());
         if (var_expr != nullptr && var_expr->x == "void") {
@@ -41,7 +43,7 @@ bool isExplicitVoidCall(Expr expr) {
                 return true;
             }
         }
-    }
+    }*/
     return false;
 }
 
@@ -60,7 +62,7 @@ void REPL(){
             if (val -> v_type == V_TERMINATE)
                 break;
             //if(true)
-            if (val->v_type != V_VOID)
+            if (val->v_type != V_VOID || isExplicitVoidCall(expr))
             {
                 val -> show(std :: cout); // value print (if not void)
                 puts("");
