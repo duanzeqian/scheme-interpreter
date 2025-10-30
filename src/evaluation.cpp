@@ -866,16 +866,17 @@ Value Define::eval(Assoc &env) {
     Value matched_value = find(var,env);
     if(matched_value.get() == nullptr) env = extend(var,VoidV(),env);
     //a new element in env, namely recursion,so we create a Placeholder
-    modify(var,e->eval(env),env);//calculate
+    Value val = e->eval(env);//avoid mutual citation
+    modify(var,val,env);//calculate
     return VoidV();
 }
 
 Value Let::eval(Assoc &env) {
     //TODO: To complete the let logic
-    Assoc new_env = env;
     std::vector<Value> values;
     for(auto &binding:bind) values.push_back(binding.second->eval(env));
-    for(size_t i = 0; i < bind.size(); ++i) new_env = extend(bind[i].first, values[i], new_env);
+    Assoc new_env = env;
+    for(size_t i=0; i<bind.size(); ++i) new_env = extend(bind[i].first,values[i],new_env);
     return body->eval(new_env);
 }
 
