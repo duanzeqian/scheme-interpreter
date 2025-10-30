@@ -707,7 +707,26 @@ Value Begin::eval(Assoc &e) {
     //TODO: To complete the begin logic
     if(es.empty()) return VoidV();
     Value res = VoidV();
-    for(auto &exp:es) res=exp->eval(e);
+    std::vector<std::pair<std::string, Expr>> local_defines;
+    for(auto &exp:es)
+    {
+        if(auto define_expr = dynamic_cast<Define*>(exp.get()))//don't eval 'define' immediately, instead, collect them
+        {
+            local_defines.push_back({define_expr->var,define_expr->e});
+            continue;
+        }
+        if(!local_defines.empty())//mutual_recursion
+        {
+            for(auto &def:local_defines) e = extend(def.first,VoidV(),e);//placeholder
+            for(auto &def:local_defines)
+            {
+                Value val = def.second->eval(e);//now eval those in the same environment
+                modify(def.first,val,e);
+            }
+            local_defines.clear();
+        }
+        res=exp->eval(e);
+    }
     return res;
 }
 
