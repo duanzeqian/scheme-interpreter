@@ -18,7 +18,7 @@ bool isExplicitVoidCall(Expr expr) {
         return true;
     }
     
-    /*Apply* apply_expr = dynamic_cast<Apply*>(expr.get());
+    Apply* apply_expr = dynamic_cast<Apply*>(expr.get());
     if (apply_expr != nullptr) {
         Var* var_expr = dynamic_cast<Var*>(apply_expr->rator.get());
         if (var_expr != nullptr && var_expr->x == "void") {
@@ -43,7 +43,7 @@ bool isExplicitVoidCall(Expr expr) {
                 return true;
             }
         }
-    }*/
+    }
     return false;
 }
 
