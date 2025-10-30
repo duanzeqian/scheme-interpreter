@@ -24,20 +24,27 @@ using std::pair;
 extern std::map<std::string, ExprType> primitives;
 extern std::map<std::string, ExprType> reserved_words;
 
-
-Expr syntax_To_Expr(const Syntax &stx,Assoc &env);
-bool isKeywordRedefined(const std::string& keyword, Assoc& env) {
-    Value keyword_value = find(keyword, env);
-    return (keyword_value.get() != nullptr);
-}
-Expr handleRedefinedKeyword(const std::string& keyword, const std::vector<Syntax>& stxs, Assoc& env) {
-    vector<Expr> args;
-    for(size_t i = 1; i < stxs.size(); ++i) {
-        args.push_back(syntax_To_Expr(stxs[i], env));
+void debugEnvironment(const std::string& context, Assoc& env) {
+    std::cout << "=== DEBUG ENVIRONMENT (" << context << ") ===" << std::endl;
+    int count = 0;
+    for (auto i = env; i.get() != nullptr; i = i->next) {
+        std::cout << "  [" << count << "] " << i->x << " -> ";
+        if (i->v.get() != nullptr) {
+            std::cout << "type " << i->v->v_type;
+            if (i->v->v_type == V_PROC) {
+                std::cout << " (procedure)";
+            } else if (i->v->v_type == V_INT) {
+                Integer* integer = dynamic_cast<Integer*>(i->v.get());
+                std::cout << " value=" << integer->n;
+            }
+        } else {
+            std::cout << "null";
+        }
+        std::cout << std::endl;
+        count++;
     }
-    return Expr(new Apply(new Var(keyword), args));
+    std::cout << "=== END DEBUG ENVIRONMENT ===" << std::endl;
 }
-
 /**
  * @brief Default parse method (should be overridden by subclasses)
  */
@@ -318,27 +325,54 @@ Expr List::parse(Assoc &env) {
     }
 
     if (reserved_words.count(op) != 0) {
-        if(isKeywordRedefined(op,env)) return handleRedefinedKeyword(op,stxs,env);
     	switch (reserved_words[op]) {
 			//TODO: TO COMPLETE THE reserve_words PARSER LOGIC
             case E_BEGIN:
             {
+                Value match_value = find("begin", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("begin"), args));
+                }
                 vector<Expr> exps;
                 for(size_t i=1; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i],env));
                 return Expr(new Begin(exps));
             }
             case E_QUOTE:
             {
+                Value match_value = find("quote", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("quote"), args));
+                }
                 if(stxs.size() == 2) return Expr(new Quote(stxs[1]));
                 else throw RuntimeError("Wrong number of arguments for Quote");
             }
             case E_IF:
             {
+                Value match_value = find("if", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("if"), args));
+                }
                 if(stxs.size() == 4) return Expr(new If(syntax_To_Expr(stxs[1],env),syntax_To_Expr(stxs[2],env),syntax_To_Expr(stxs[3],env)));
                 else throw RuntimeError("Wrong number of arguments for If");
             }
             case E_COND:
             {
+                Value match_value = find("cond", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("cond"), args));
+                }
                 vector<vector<Expr> > clauses;
                 for(size_t i=1; i<stxs.size(); ++i)
                 {
@@ -354,6 +388,13 @@ Expr List::parse(Assoc &env) {
             }
             case E_LAMBDA:
             {
+                Value match_value = find("lambda", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("lambda"), args));
+                }
                 if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for lambda");
                 vector<string> parameters;
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
@@ -372,6 +413,13 @@ Expr List::parse(Assoc &env) {
             }
             case E_DEFINE:
             {
+                Value match_value = find("define", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("define"), args));
+                }
                 if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for define");
                 //check if it is the simple form of function(name)
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
@@ -393,9 +441,16 @@ Expr List::parse(Assoc &env) {
                             for(size_t i=2; i<stxs.size(); ++i) exps.push_back(syntax_To_Expr(stxs[i],env));
                             Expr body=exps[0];//size=1
                             if(exps.size() > 1) body = Expr(new Begin(exps));
+                            
+                            Assoc func_env = env;//store all func_name in case it is defined afterward
+                            func_env = extend(funcName, VoidV(), func_env);  //including myself
+                            vector<Expr> new_exps;
+                            for(size_t i=2; i<stxs.size(); ++i) new_exps.push_back(syntax_To_Expr(stxs[i], func_env));
+                            Expr new_body = new_exps[0];
+                            if(new_exps.size() > 1) new_body = Expr(new Begin(new_exps));
                             //create a new lambda and package it with Define
-                            Expr lambda = Expr(new Lambda(parameters,body));
-                            return Expr(new Define(funcName,lambda));
+                            Expr lambda = Expr(new Lambda(parameters, new_body));
+                            return Expr(new Define(funcName, lambda));
                         }
                     }
                 }
@@ -415,43 +470,59 @@ Expr List::parse(Assoc &env) {
             }
             case E_LET:
             {
+                Value match_value = find("let", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i=1; i<stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("let"), args));
+                }
                 if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for Let");
-                vector<string> parameters;
-                vector<Syntax> arguments;
+                vector<pair<string,Expr>> bindings;
+                vector<string> var_names;
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
                 {
-                    for(auto &binding_stx : lst->stxs)
+                    for(auto &stx:lst->stxs)
                     {
-                        if(auto binding_lst = dynamic_cast<List*>(binding_stx.get()))
+                        if(auto sym_lst = dynamic_cast<List*>(stx.get()))
                         {
-                            if(binding_lst->stxs.size() != 2) throw RuntimeError("Wrong number of arguments in single Let binding");
-                            SymbolSyntax* var_sym = dynamic_cast<SymbolSyntax*>(binding_lst->stxs[0].get());
-                            if(var_sym == nullptr) throw RuntimeError("Invalid variable name in Let binding");
-                            parameters.push_back(var_sym->s);
-                            arguments.push_back(binding_lst->stxs[1]);
+                            if(sym_lst->stxs.size() != 2) throw RuntimeError("Wrong number of arguments in single Let");
+                            SymbolSyntax* sym = dynamic_cast<SymbolSyntax*>(sym_lst->stxs[0].get());
+                            if(sym == nullptr) throw RuntimeError("Invalid variable name in single Let");
+                            var_names.push_back(sym->s);
                         }
-                        else throw RuntimeError("Invalid binding syntax in Let");
                     }
                 }
-                else throw RuntimeError("Wrong parameter list in Let");
-                vector<Syntax> body_stxs;
-                for(size_t i=2; i<stxs.size(); ++i) body_stxs.push_back(stxs[i]);
-                if(body_stxs.empty()) body_stxs.push_back(Syntax(new SymbolSyntax("void")));
-                List* lambda_list = new List();
-                lambda_list->stxs.push_back(Syntax(new SymbolSyntax("lambda")));
-                List* param_list = new List();
-                for(const auto& param : parameters) param_list->stxs.push_back(Syntax(new SymbolSyntax(param)));
-                lambda_list->stxs.push_back(Syntax(param_list));
-                for(const auto& body_stx : body_stxs) lambda_list->stxs.push_back(body_stx);
-                
-                //((lambda (params...) body) args...)
-                List* apply_list = new List();
-                apply_list->stxs.push_back(Syntax(lambda_list));
-                for(const auto& arg : arguments) apply_list->stxs.push_back(arg);
-                return syntax_To_Expr(Syntax(apply_list), env);
+                Assoc new_env = env;
+                for(const auto& var_name : var_names) new_env = extend(var_name,VoidV(),new_env);
+                if(auto lst = dynamic_cast<List*>(stxs[1].get()))
+                {
+                    int idx = 0;
+                    for(auto &stx:lst->stxs)
+                    {
+                        if(auto sym_lst = dynamic_cast<List*>(stx.get()))
+                        {
+                            SymbolSyntax* sym = dynamic_cast<SymbolSyntax*>(sym_lst->stxs[0].get());
+                            Expr value_expr = syntax_To_Expr(sym_lst->stxs[1], env);
+                            bindings.push_back(std::make_pair(sym->s, value_expr));
+                        }
+                    }
+                }
+                vector<Expr> body;
+                for(size_t i=2; i<stxs.size(); ++i) body.push_back(syntax_To_Expr(stxs[i], new_env));
+                Expr expr = body[0];
+                if(body.size() > 1) expr = Expr(new Begin(body));
+                return Expr(new Let(bindings, expr));
             }
             case E_LETREC:
             {
+                Value match_value = find("letrec", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("letrec"), args));
+                }
                 if(stxs.size() < 3) throw RuntimeError("Wrong number of arguments for Letrec");
                 vector<pair<string,Expr>> bindings;
                 if(auto lst = dynamic_cast<List*>(stxs[1].get()))
@@ -477,6 +548,13 @@ Expr List::parse(Assoc &env) {
             }
             case E_SET:
             {
+                Value match_value = find("set!", env);
+                if(match_value.get() != nullptr)
+                {
+                    vector<Expr> args;
+                    for(size_t i = 1; i < stxs.size(); ++i) args.push_back(syntax_To_Expr(stxs[i], env));
+                    return Expr(new Apply(new Var("set!"), args));
+                }
                 if(stxs.size() != 3) throw RuntimeError("Wrong number of arguments for set!");
                 SymbolSyntax* varSym = dynamic_cast<SymbolSyntax*>(stxs[1].get());
                 if(varSym == nullptr) throw RuntimeError("Invalid variable name in set!");
