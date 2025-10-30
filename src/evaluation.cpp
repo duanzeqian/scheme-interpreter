@@ -93,6 +93,21 @@ Value Var::eval(Assoc &e) { // evaluation of variable
                     {E_MODULO,   {new Modulo(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
                     {E_EXPT,     {new Expt(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
                     {E_EQQ,      {new EqualVar({}), {}}},
+                    {E_EQ,       {new EqualVar({}), {}}},
+                    {E_LT,       {new LessVar({}), {}}},
+                    {E_LE,       {new LessEqVar({}), {}}},
+                    {E_GE,       {new GreaterEqVar({}), {}}},
+                    {E_GT,       {new GreaterVar({}), {}}},
+                    {E_CONS,     {new Cons(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+                    {E_CAR,      {new Car(new Var("parm")), {"parm"}}},
+                    {E_CDR,      {new Cdr(new Var("parm")), {"parm"}}},
+                    {E_NOT,      {new Not(new Var("parm")), {"parm"}}},
+                    {E_LIST,     {new ListFunc({}), {}}},
+                    {E_LISTQ,    {new IsList(new Var("parm")), {"parm"}}},
+                    {E_SETCAR,   {new SetCar(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+                    {E_SETCDR,   {new SetCdr(new Var("parm1"), new Var("parm2")), {"parm1","parm2"}}},
+                    {E_AND,      {new AndVar({}), {}}},
+                    {E_OR,       {new OrVar({}), {}}}
             };//check if it is an operation
 
             auto it = primitive_map.find(primitives[x]);
